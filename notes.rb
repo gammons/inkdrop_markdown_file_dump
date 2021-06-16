@@ -10,6 +10,9 @@ require "byebug"
 
 # get all notes
 # http://admin:password@127.0.0.1:5984/inkdrop/_design/index_notes/_view/index_notes
+def sanitize_name(name)
+  name.gsub(/\//,"").gsub(/\s/, "-").downcase
+end
 
 class Book
   attr_accessor :id, :parent_book_id, :name, :created_at, :updated_at, :children, :directory_name
@@ -49,10 +52,10 @@ class Books
   end
 
   def directory_name(book)
-    dn = [book.name]
+    dn = [sanitize_name(book.name)]
     while !book.parent_book_id.nil? do
       book = members.find{|b| b.id == book.parent_book_id }
-      dn.push(book.name)
+      dn.push(sanitize_name(book.name))
     end
     dn.reverse.join("/")
   end
@@ -120,15 +123,20 @@ class Inkdrop
   def create_note_files
     notes.each do |note|
       book = books.find{|b| b.id == note.book_id }
-      directory = books.directory_name(book)
+      next if book.nil?
 
-      f = File.open("inkdrop/#{directory}/#{note.name}","w")
+      directory = books.directory_name(book)
+      filename = ["inkdrop", directory, sanitize_name(note.name)].join("/") + ".md"
+
+      f = File.open(filename, "w")
       f << note.body
       f.close
+      FileUtils.touch(filename, mtime: note.updated_at)
     end
   end
 
   private
+
 
   def fetch(url)
     res = HTTP.basic_auth(user: "admin", pass: "password").get(url)
@@ -143,11 +151,3 @@ class Inkdrop
     Dir.mkdir("inkdrop")
   end
 end
-
-i = Inkdrop.new
-i.get_books
-i.get_notes
-i.create_book_directories
-i.create_note_files
-
-
