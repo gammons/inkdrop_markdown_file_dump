@@ -89,8 +89,8 @@ class Inkdrop
         id: res["_id"],
         parent_book_id: res["parentBookId"],
         name: res["name"],
-        created_at: Time.at(res["createdAt"][0..9].to_i),
-        updated_at: Time.at(res["updatedAt"][0..9].to_i),
+        created_at: Time.at(res["createdAt"].to_s[0..9].to_i),
+        updated_at: Time.at(res["updatedAt"].to_s[0..9].to_i),
       )
     end
   end
@@ -104,11 +104,10 @@ class Inkdrop
         book_id: res["bookId"],
         name: res["title"],
         body: res["body"],
-        created_at: Time.at(res["createdAt"][0..9].to_i),
-        updated_at: Time.at(res["updatedAt"][0..9].to_i),
+        created_at: Time.at(res["createdAt"].to_s[0..9].to_i),
+        updated_at: Time.at(res["updatedAt"].to_s[0..9].to_i),
       )
     end
-
   end
 
   def create_book_directories
@@ -116,7 +115,9 @@ class Inkdrop
 
     # start with books with no parent id
     books.each do |book|
-      system "mkdir -p 'inkdrop/#{books.directory_name(book)}'"
+      dirname = "inkdrop/#{books.directory_name(book)}"
+      system "mkdir -p '#{dirname}'"
+      FileUtils.touch(dirname, mtime: book.updated_at)
     end
   end
 
